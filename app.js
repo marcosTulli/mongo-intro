@@ -20,14 +20,19 @@ async function main() {
 
     const limitData = await circulationRepo.get({}, 3);
     assert.equal(limitData.length, 3);
+
+    const id = getData[4]._id.toString();
+
+    const byId = await circulationRepo.getById(id);
+    assert.deepEqual(byId, getData[4]);
+    console.log(byId);
     //
   } catch (error) {
     console.log(error);
   } finally {
-    const admin = client.db(DB_NAME).admin();
+    // const admin = client.db(DB_NAME).admin();
     await client.db(DB_NAME).dropDatabase();
-
-    console.log(await admin.listDatabases());
+    // console.log(await admin.listDatabases());
     client.close();
   }
 }
