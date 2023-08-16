@@ -58,6 +58,27 @@ async function main() {
     assert.deepEqual(addItemQuery, newItem);
     console.log('Add Item OK\n - - - - -');
 
+    console.log('Testing Update Item');
+    const updatedItem = await circulationRepo.update(addItem.insertedId, {
+      'Newspaper': 'My new Paper',
+      'Daily Circulation, 2004': 1,
+      'Daily Circulation, 2013': 2,
+      'Change in Daily Circulation, 2004-2013': 100,
+      'Pulitzer Prize Winners and Finalists, 1990-2003': 0,
+      'Pulitzer Prize Winners and Finalists, 2004-2014': 0,
+      'Pulitzer Prize Winners and Finalists, 1990-2014': 0,
+    });
+    assert.equal(updatedItem.Newspaper, 'My new Paper');
+
+    const newAddedItemQuery = await circulationRepo.getById(addItem.insertedId);
+    assert.equal(newAddedItemQuery.Newspaper, 'My new Paper');
+    console.log('Update Item OK\n - - - - -');
+
+    console.log('Testing Delete Item');
+    const removed = await circulationRepo.remove(addItem.insertedId);
+    assert(removed);
+    console.log('Deleted Item OK\n - - - - -');
+
     //
   } catch (error) {
     console.log(error);

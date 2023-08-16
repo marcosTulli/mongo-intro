@@ -50,6 +50,38 @@ function citrculationRepo() {
     });
   }
 
+  function update(id, newItem) {
+    return new Promise(async (res, rej) => {
+      const client = new MongoClient(MONGO_URL);
+      try {
+        await client.connect();
+        const db = client.db(DB_NAME);
+        const updatedItem = await db
+          .collection('newspapers')
+          .findOneAndReplace({ _id: new ObjectId(id) }, newItem, { returnDocument: 'after' });
+        res(updatedItem.value);
+        client.close();
+      } catch (error) {
+        rej(error);
+      }
+    });
+  }
+
+  function remove(id) {
+    return new Promise(async (res, rej) => {
+      const client = new MongoClient(MONGO_URL);
+      try {
+        await client.connect();
+        const db = client.db(DB_NAME);
+        const removed = await db.collection('newspapers').deleteOne({ _id: new ObjectId(id) });
+        res(removed.deletedCount === 1);
+        client.close();
+      } catch (error) {
+        rej(error);
+      }
+    });
+  }
+
   function loadData(data) {
     return new Promise(async (res, rej) => {
       const client = new MongoClient(MONGO_URL);
@@ -59,11 +91,13 @@ function citrculationRepo() {
         const results = await db.collection('newspapers').insertMany(data);
         res(results);
         client.close();
-      } catch (error) {}
+      } catch (error) {
+        rej(error);
+      }
     });
   }
 
-  return { loadData, get, getById, add };
+  return { loadData, get, getById, add, update, remove };
 }
 
 module.exports = citrculationRepo();
