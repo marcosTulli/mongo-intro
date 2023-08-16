@@ -7,33 +7,68 @@ const data = require('./circulation.json');
 async function main() {
   const client = new MongoClient(MONGO_URL);
   await client.connect();
+  try {
+    await client.db('admin').command({ ping: 1 });
+    console.log('Pinged your deployment. You successfully connected to MongoDB!\n - - - - -');
+  } catch (error) {
+    console.log(error);
+  }
 
   try {
     const results = await circulationRepo.loadData(data);
+    console.log('Testing LoadData');
     assert.equal(data.length, results.insertedCount);
+    console.log('LoadData OK\n - - - - -');
 
+    console.log('Testing GetData');
     const getData = await circulationRepo.get();
     assert.equal(data.length, getData.length);
+    console.log('GetData OK\n - - - - -');
 
+    console.log('Testing FilterData');
     const filterData = await circulationRepo.get({ Newspaper: getData[4].Newspaper });
     assert.deepEqual(filterData[0], getData[4]);
+    console.log('FilterData OK\n - - - - -');
 
+    console.log('Testing Limit Data');
     const limitData = await circulationRepo.get({}, 3);
     assert.equal(limitData.length, 3);
-
     const id = getData[4]._id.toString();
+    console.log('Limit Data OK\n - - - - -');
 
+    console.log('Testing GetByID');
     const byId = await circulationRepo.getById(id);
     assert.deepEqual(byId, getData[4]);
-    console.log(byId);
+    console.log('GetByID OK\n - - - - -');
+
+    const newItem = {
+      'Newspaper': 'My Paper',
+      'Daily Circulation, 2004': 1,
+      'Daily Circulation, 2013': 2,
+      'Change in Daily Circulation, 2004-2013': 100,
+      'Pulitzer Prize Winners and Finalists, 1990-2003': 0,
+      'Pulitzer Prize Winners and Finalists, 2004-2014': 0,
+      'Pulitzer Prize Winners and Finalists, 1990-2014': 0,
+    };
+
+    console.log('Testing Add Item');
+    const addItem = await circulationRepo.add(newItem);
+    assert(addItem.insertedId);
+    const addItemQuery = await circulationRepo.getById(addItem.insertedId);
+    assert.deepEqual(addItemQuery, newItem);
+    console.log('Add Item OK\n - - - - -');
+
     //
   } catch (error) {
     console.log(error);
   } finally {
-    // const admin = client.db(DB_NAME).admin();
+    const admin = client.db(DB_NAME).admin();
+    console.log('Dropping DB');
     await client.db(DB_NAME).dropDatabase();
-    // console.log(await admin.listDatabases());
+    console.log('DB dropped OK\n - - - - -');
+    console.log(await admin.listDatabases());
     client.close();
+    console.log('Closed');
   }
 }
 

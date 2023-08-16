@@ -1,4 +1,4 @@
-const { MongoClient, ObjectId } = require('mongodb');
+const { MongoClient, ObjectId, Db } = require('mongodb');
 const { MONGO_URL, DB_NAME } = require('../variables');
 
 function citrculationRepo() {
@@ -35,6 +35,21 @@ function citrculationRepo() {
     });
   }
 
+  function add(item) {
+    return new Promise(async (res, rej) => {
+      const client = new MongoClient(MONGO_URL);
+      try {
+        await client.connect();
+        const db = client.db(DB_NAME);
+        const addedItem = await db.collection('newspapers').insertOne(item);
+        res(addedItem);
+        client.close();
+      } catch (error) {
+        rej(error);
+      }
+    });
+  }
+
   function loadData(data) {
     return new Promise(async (res, rej) => {
       const client = new MongoClient(MONGO_URL);
@@ -48,7 +63,7 @@ function citrculationRepo() {
     });
   }
 
-  return { loadData, get, getById };
+  return { loadData, get, getById, add };
 }
 
 module.exports = citrculationRepo();
