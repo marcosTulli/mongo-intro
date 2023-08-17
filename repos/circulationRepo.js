@@ -2,6 +2,24 @@ const { MongoClient, ObjectId, Db } = require('mongodb');
 const { MONGO_URL, DB_NAME } = require('../variables');
 
 function citrculationRepo() {
+  // const client = new MongoClient(MONGO_URL);
+  // const db = client.db(DB_NAME);
+
+  function loadData(data) {
+    return new Promise(async (res, rej) => {
+      const client = new MongoClient(MONGO_URL);
+      try {
+        await client.connect();
+        const db = client.db(DB_NAME);
+        const results = await db.collection('newspapers').insertMany(data);
+        res(results);
+        client.close();
+      } catch (error) {
+        rej(error);
+      }
+    });
+  }
+
   function get(query, limit) {
     return new Promise(async (res, rej) => {
       const client = new MongoClient(MONGO_URL);
@@ -82,14 +100,25 @@ function citrculationRepo() {
     });
   }
 
-  function loadData(data) {
+  function averageFinalists() {
     return new Promise(async (res, rej) => {
       const client = new MongoClient(MONGO_URL);
       try {
         await client.connect();
         const db = client.db(DB_NAME);
-        const results = await db.collection('newspapers').insertMany(data);
-        res(results);
+        const average = await db
+          .collection('newspapers')
+          .aggregate([
+            {
+              $group: {
+                _id: null,
+                avgFinalists: { $avg: '$Pulitzer Prize Winners and Finalists, 1990-2014' },
+              },
+            },
+          ])
+          .toArray();
+
+        res(average[0].avgFinalists);
         client.close();
       } catch (error) {
         rej(error);
@@ -97,7 +126,47 @@ function citrculationRepo() {
     });
   }
 
-  return { loadData, get, getById, add, update, remove };
+  function averageFinalistsByChange() {
+    return new Promise(async (res, rej) => {
+      const client = new MongoClient(MONGO_URL);
+      try {
+        await client.connect();
+        const db = client.db(DB_NAME);
+        const average = await db
+          .collection('newspapers')
+          .aggregate([
+            {
+              $project: {
+                'Newspaper': 1,
+                'Pulitzer Prize Winners and Finalists, 2004-2014': 1,
+                'Change in Daily Circulation, 2004-2013': 1,
+                overallChange: {
+                  $cond: {
+                    if: { $gte: ['$Change in Daily Circulation, 2004-2013', 0] },
+                    then: 'positive',
+                    else: 'negative',
+                  },
+                },
+              },
+            },
+            {
+              $group: {
+                _id: '$overallChange',
+                avgFinalists: { $avg: '$Pulitzer Prize Winners and Finalists, 2004-2014' },
+              },
+            },
+          ])
+          .toArray();
+
+        res(average);
+        client.close();
+      } catch (error) {
+        rej(error);
+      }
+    });
+  }
+
+  return { loadData, get, getById, add, update, remove, averageFinalists, averageFinalistsByChange };
 }
 
 module.exports = citrculationRepo();
